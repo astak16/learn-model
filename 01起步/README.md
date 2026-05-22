@@ -1,3 +1,17 @@
+现在市面上的 Agent 教程太多了，要么太浅要么太碎。
+
+之前一直关注的博主三元同学最近出了[Super Agent 实践课](https://sitor.ai/courses?ref=38F54SVU)，这门课从「底层实现级」角度拆解真实产品的工程决策，帮你建立完整的 Agent 知识体系，覆盖六大方向。
+
+这门课学习下来让我对 Agent 有了全面的认知，下面是我的学习笔记
+
+**往期学习笔记**
+
+### 吃透 AI Agent 开发
+
+1. [系统认知 Agent 六大支柱](https://juejin.cn/post/7637502462330224678)
+2. [Agent循环原理](https://juejin.cn/post/7641544730451738658)
+3. [大模型底层机制与Agent开发](https://juejin.cn/post/7642176685400735778)
+
 在开发 ai 应用时，我们需要频繁调试前端交互与接口逻辑，如果在开发阶段都真实调用大模型的 api，不仅费时，费钱，网络延迟还会降低开发效率
 
 通过深入 Vercel AI SDK 底层协议，我们可以非常轻松地手写一个简易的 Mock Model，它完全不依赖网络请求，却能完美的欺骗 Vercel AI SDK，在本地提供一个一模一样的单次生成(`generateText`)和流式响应(`streamText`)体验
@@ -158,6 +172,8 @@ function createDelayedStream(
 
 ## 调用 mock model
 
+[mock model 源码](https://github.com/astak16/learn-model/blob/main/01%E8%B5%B7%E6%AD%A5/src/mock-model.ts)
+
 写好了 Mock Model 之后，在业务代码中的调用方法与官方提供的 openai 或者 anthropic 模型完全一样：
 
 可以直接把他传给 `generateText` 和 `streamText`：
@@ -174,6 +190,8 @@ async function main() {
 main();
 ```
 
+[doGenerate 源码](https://github.com/astak16/learn-model/blob/main/01%E8%B5%B7%E6%AD%A5/src/index-generate.ts)
+
 ```ts
 async function main() {
   const result = streamText({
@@ -186,12 +204,17 @@ async function main() {
   }
   console.log(); // 换行
 }
-
 main();
 ```
+
+[doStream 源码](https://github.com/astak16/learn-model/blob/main/01%E8%B5%B7%E6%AD%A5/src/index-stream.ts)
 
 ## 总结
 
 通过实现 `doGenerate` 和 `doStream` 方法，我们成功构建了一个完全本地运行的 Mock Model
 
 这套方案非常适合用来编写前端单元测试（UI Verification），或是作为离线开发、环境降级时的兜底方案。
+
+_学习完成于 2026-05-21_
+
+_基于[10 分钟，让你的 AI 开口说话](https://sitor.ai/courses/super-agent/sa-01-hello-agent?ref=38F54SVU)学习笔记整理_
