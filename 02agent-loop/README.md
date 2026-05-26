@@ -1,3 +1,17 @@
+现在市面上的 Agent 教程太多了，要么太浅要么太碎。
+
+之前一直关注的博主三元同学最近出了[Super Agent 实践课](https://sitor.ai/courses?ref=38F54SVU)，这门课从「底层实现级」角度拆解真实产品的工程决策，帮你建立完整的 Agent 知识体系，覆盖六大方向。
+
+这门课学习下来让我对 Agent 有了全面的认知，下面是我的学习笔记
+
+**往期学习笔记**
+
+### 吃透 AI Agent 开发
+
+1. [系统认知 Agent 六大支柱](https://juejin.cn/post/7637502462330224678)
+2. [Agent循环原理](https://juejin.cn/post/7641544730451738658)
+3. [大模型底层机制与Agent开发](https://juejin.cn/post/7642176685400735778)
+
 在构建现在大语言模型（LLM）应用时，Agent（智能体）已经成为了最热门的话题。
 
 不同于传统的单向文本对话，Agent 的核心能力在于主动使用工具与外部环境进行交互，获取信息、执行任务，并根据反馈进行调整。这种能力使得 Agent 可以应用在各种应用场景
@@ -54,6 +68,8 @@ const weatherTool = tool({
 });
 ```
 
+[weatherTool 源码](https://github.com/astak16/learn-model/blob/main/02agent-loop/src/tools.ts#L3)
+
 ```ts
 import { jsonSchema } from "ai";
 const calculatorTool = {
@@ -76,6 +92,8 @@ const calculatorTool = {
   },
 };
 ```
+
+[calculatorTool 源码](https://github.com/astak16/learn-model/blob/main/02agent-loop/src/tools.ts#L23)
 
 ### jsonSchema
 
@@ -149,6 +167,8 @@ const ask = () => {
   });
 };
 ```
+
+[ask 源码](https://github.com/astak16/learn-model/blob/main/02agent-loop/src/index-sdk.ts#L16)
 
 这种封装虽然让开发者几行代码就能跑起一个 Agent，但也隐藏了循环的细节，对于一些需要精细化控制每次循环的行为，就显得不太灵活了
 
@@ -251,6 +271,8 @@ export const agentLoop = async (
   }
 };
 ```
+
+[agentLoop 源码](https://github.com/astak16/learn-model/blob/main/02agent-loop/src/agent-loop.ts#L5)
 
 ## mock model
 
@@ -414,3 +436,7 @@ async doStream({ prompt }: LanguageModelV3CallOptions) {
 2. 第二部分：识别工具结果，吐出 `text-delta`，结束整个循环
 
 掌握手写循环，就真正理解了 Agent 的核心机制，才能在实际应用中根据需求灵活调整循环的行为和停止条件
+
+_学习完成于 2026-05-25_
+
+_基于[从"能聊天"到"能干活"——给 Agent 装上 while 循环](https://sitor.ai/courses/super-agent/sa-02-agent-loop?ref=38F54SVU)学习笔记整理_

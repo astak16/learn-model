@@ -1,6 +1,6 @@
 import { LanguageModel, ModelMessage, streamText, ToolSet } from "ai";
 
-const MAX_STEPS = 10;
+const MAX_STEPS = 5;
 
 export const agentLoop = async (
   model: LanguageModel,
