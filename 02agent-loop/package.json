@@ -1,0 +1,20 @@
+{
+  "name": "super-agent",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "start:sdk": "tsx src/index-sdk.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.64",
+    "@ai-sdk/provider": "^3.0.10",
+    "ai": "^6.0.188",
+    "dotenv": "^17.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
