@@ -1,10 +1,5 @@
 import http, { IncomingMessage, ServerResponse } from "http";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { handleIndex, handleTs, setSSEHeaders, sleep, writeSSE } from "../utils";
 
 const SAMPLE_TEXT =
   "这是一个模拟流式响应的 demo。" +
@@ -13,34 +8,6 @@ const SAMPLE_TEXT =
 
 let requestCount = 0;
 const FAIL_UNTIL = 2;
-
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
-const writeSSE = (res: ServerResponse, data: unknown, id?: number, event?: string): void => {
-  // id 字段是 SSE 协议内置的续传机制：
-  // 浏览器断线重连时会自动在请求头带上 Last-Event-ID: <最后收到的 id>
-  if (id !== undefined) {
-    res.write(`id: ${id}\n`);
-  }
-  if (event) {
-    res.write(`event: ${event}\n`);
-  }
-  const lines = String(data).split("\n");
-  for (const line of lines) {
-    res.write(`data: ${line}\n`);
-  }
-  res.write("\n");
-};
-
-function setSSEHeaders(res: ServerResponse): void {
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream; charset=utf-8",
-    "Cache-Control": "no-cache, no-transform",
-    Connection: "keep-alive",
-    "X-Accel-Buffering": "no",
-  });
-  res.flushHeaders?.();
-}
 
 const handleTextStream = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
   setSSEHeaders(res);
@@ -68,7 +35,7 @@ const handleTextStream = async (req: IncomingMessage, res: ServerResponse): Prom
 
   const heartbeat = setInterval(() => {
     if (!close) res.write(": heartbeat\n\n");
-  }, 1500);
+  }, 15000);
 
   try {
     for (let i = offset; i < chars.length; i++) {
@@ -94,27 +61,15 @@ const handleTextStream = async (req: IncomingMessage, res: ServerResponse): Prom
   }
 };
 
-function handleIndex(req: IncomingMessage, res: ServerResponse): void {
-  const filePath = path.join(__dirname, "index.html");
-  fs.readFile(filePath, "utf-8", (err, html) => {
-    if (err) {
-      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
-      res.end("读取首页文件失败: " + err.message);
-      return;
-    }
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(html);
-  });
-}
-
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   if (url.pathname === "/stream" && req.method === "GET") {
     handleTextStream(req, res);
   } else if (url.pathname === "/" && req.method === "GET") {
     requestCount = 0;
-
-    handleIndex(req, res);
+    handleIndex(req, res, "eventsource");
+  } else if (url.pathname === "/main.ts" && req.method === "GET") {
+    handleTs(req, res, "eventsource");
   } else {
     res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("Not Found");
