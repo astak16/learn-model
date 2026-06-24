@@ -99,3 +99,32 @@ if (obj.type === "stop") {
   statusEl.textContent = "共 " + obj.totalTokens + " 个 token"; // 收到结束信号，展示统计信息
 }
 ```
+
+```
+用户点击按钮
+   │
+   ▼
+fetch POST /stream
+   │  (携带 Last-Event-ID 若有)
+   ▼
+服务端收到请求
+   ├─ setSSEHeaders()        → 建立长连接
+   ├─ 读取 Last-Event-ID     → 计算续传 offset
+   └─ 逐 token 调用 writeSSE()
+         │  res.write("id: N\n")
+         │  res.write("data: {...}\n\n")
+         ▼
+客户端 reader.read()         → 接收 Uint8Array 字节块
+   │
+   ▼
+TextDecoder.decode()         → 转为字符串，追加到 buffer
+   │
+   ▼
+buffer.split("\n\n")         → 切割完整事件块
+   │
+   ├─ 解析 id / event / data 字段
+   ├─ data === "[DONE]"      → 结束
+   └─ JSON.parse(data)       → ChatCompletionChunk
+         ├─ delta.content    → 追加到 out.textContent
+         └─ delta.tool_calls → 拼接 arguments，更新显示
+```

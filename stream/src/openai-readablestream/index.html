@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OpenAI ReadableStream Demo</title>
+    <style>
+      body {
+        font-family: -apple-system, sans-serif;
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 0 16px;
+      }
+      button {
+        padding: 8px 16px;
+        margin-right: 8px;
+        cursor: pointer;
+      }
+      #out {
+        white-space: pre-wrap;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 16px;
+        min-height: 120px;
+        margin-top: 16px;
+        background: #fafafa;
+      }
+      #status {
+        color: #888;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>OpenAI ReadableStream Demo</h2>
+    <button id="btn3">POST /v1/chat/completions（文本）</button>
+    <button id="btn4">POST /v1/chat/completions（tool_calls）</button>
+    <button id="btnStop">断开</button>
+    <div id="status">未连接</div>
+    <div id="out"></div>
+    <script type="module" src="/main.ts"></script>
+
+    <!-- <script>
+      let abortController = null;
+      const out = document.getElementById("out");
+      const status = document.getElementById("status");
+
+      // POST 接口不能用 EventSource（它只支持 GET），改用 fetch + ReadableStream 手动解析 SSE
+      async function connectOpenAI(withTools) {
+        stopAll();
+        out.textContent = "";
+        status.textContent = "请求中: /v1/chat/completions";
+        abortController = new AbortController();
+
+        const body = withTools
+          ? {
+              model: "gpt-4o-mini",
+              messages: [{ role: "user", content: "上海天气怎么样" }],
+              tools: [{ type: "function", function: { name: "get_weather" } }],
+            }
+          : { model: "gpt-4o-mini", messages: [{ role: "user", content: "你好" }] };
+
+        const res = await fetch("/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal: abortController.signal,
+        });
+
+        status.textContent = "已连接: /v1/chat/completions";
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let toolArgsBuffer = "";
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            // SSE 消息以两个换行分隔，按行处理 data: 前缀
+            const parts = buffer.split("\n\n");
+            buffer = parts.pop(); // 最后一段可能不完整，留到下一轮再拼
+
+            for (const part of parts) {
+              const line = part.replace(/^data: /, "").trim();
+              if (!line) continue;
+              if (line === "[DONE]") {
+                status.textContent = "流结束 [DONE]";
+                continue;
+              }
+              const chunk = JSON.parse(line);
+              const delta = chunk.choices?.[0]?.delta || {};
+              const finishReason = chunk.choices?.[0]?.finish_reason;
+
+              if (delta.content) {
+                out.textContent += delta.content;
+              }
+              if (delta.tool_calls) {
+                const tc = delta.tool_calls[0];
+                if (tc.id) out.textContent += "[tool_call: " + tc.function.name + "]\n";
+                if (tc.function?.arguments) {
+                  toolArgsBuffer += tc.function.arguments;
+                  out.textContent = out.textContent.split("\narguments:")[0] + "\narguments: " + toolArgsBuffer;
+                }
+              }
+              if (finishReason) {
+                status.textContent = "完成，finish_reason = " + finishReason;
+              }
+            }
+          }
+        } catch (err) {
+          // 用户点击"断开"会触发 abortController.abort()，
+          // fetch/reader 在读取中途被中断会抛出 AbortError —— 这是预期行为，不是真正的错误
+          if (err.name === "AbortError") {
+            return;
+          }
+          throw err;
+        }
+      }
+
+      function stopAll() {
+        if (abortController) {
+          abortController.abort();
+          abortController = null;
+        }
+      }
+
+      document.getElementById("btn3").onclick = () => connectOpenAI(false).catch(console.error);
+      document.getElementById("btn4").onclick = () => connectOpenAI(true).catch(console.error);
+      document.getElementById("btnStop").onclick = () => {
+        stopAll();
+        status.textContent = "已手动断开";
+      };
+    </script> -->
+  </body>
+</html>
