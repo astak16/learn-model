@@ -24,45 +24,39 @@
           headers: lastEventId ? { "Last-Event-ID": lastEventId } : {},
         });
         statusEl.textContent = retryCount === 0 ? "已连接: " + url : `第 ${retryCount} 次重连成功，自动续传 ✓`;
-        // retryCount = 0; // 连上了就清零
 
-        const reader = res.body!.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
 
-            const parts = buffer.split("\n\n");
-            buffer = parts.pop()!;
+        for await (const value of readableStreamToAsyncIterable(res.body!)) {
+          buffer += decoder.decode(value, { stream: true });
 
-            for (const part of parts) {
-              let eventName = "message";
-              let data = "";
-              let id: string | null = null;
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop()!;
 
-              for (const line of part.split("\n")) {
-                if (line.startsWith("event:")) eventName = line.slice(6).trim();
-                else if (line.startsWith("data:")) data += line.slice(5).trim();
-                else if (line.startsWith("id:")) id = line.slice(3).trim();
-              }
-              if (id) lastEventId = id;
+          for (const part of parts) {
+            let eventName = "message";
+            let data = "";
+            let id: string | null = null;
 
-              if (eventName === "done") {
-                statusEl.textContent += "，流接收完成 ✓";
-                return; // 等价于 es.close()
-              }
-              if (!data) continue;
-              const obj = JSON.parse(data) as SSEPayload;
-              if (obj.type === "delta") out.textContent += obj.content;
-              if (obj.type === "stop") statusEl.textContent = "共 " + obj.totalTokens + " 个 token";
+            for (const line of part.split("\n")) {
+              if (line.startsWith("event:")) eventName = line.slice(6).trim();
+              else if (line.startsWith("data:")) data += line.slice(5).trim();
+              else if (line.startsWith("id:")) id = line.slice(3).trim();
             }
+            if (id) lastEventId = id;
+
+            if (eventName === "done") {
+              statusEl.textContent += "，流接收完成 ✓";
+              return; // 等价于 es.close()
+            }
+            if (!data) continue;
+            const obj = JSON.parse(data) as SSEPayload;
+            if (obj.type === "delta") out.textContent += obj.content;
+            if (obj.type === "stop") statusEl.textContent = "共 " + obj.totalTokens + " 个 token";
           }
-        } finally {
-          reader.releaseLock();
         }
+
         // reader 正常 done（服务端正常关闭连接），不算错误，跳出重连循环
         return;
       } catch (err) {
@@ -88,3 +82,16 @@
     statusEl.textContent = "已手动断开";
   };
 })();
+
+async function* readableStreamToAsyncIterable<T>(stream: ReadableStream<T>): AsyncGenerator<T> {
+  const reader = stream.getReader();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      yield value as T;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}

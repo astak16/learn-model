@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ReadableStream Demo</title>
+    <style>
+      body {
+        font-family: -apple-system, sans-serif;
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 0 16px;
+      }
+      button {
+        padding: 8px 16px;
+        margin-right: 8px;
+        cursor: pointer;
+      }
+      #out {
+        white-space: pre-wrap;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 16px;
+        min-height: 120px;
+        margin-top: 16px;
+        background: #fafafa;
+      }
+      #status {
+        color: #888;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>SSE 流式数据 Demo</h2>
+    <button id="btn2">连接 /stream/json（结构化事件）</button>
+    <button id="btnStop">断开</button>
+    <div id="status">未连接</div>
+    <div id="out"></div>
+
+    <script type="module" src="main.ts"></script>
+  </body>
+</html>
