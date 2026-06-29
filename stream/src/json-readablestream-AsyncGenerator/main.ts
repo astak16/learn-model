@@ -4,7 +4,6 @@
   type StartPayload = { type: "start"; id: string };
   type SSEPayload = StartPayload | DeltaPayload | StopPayload;
 
-  let es: EventSource | null = null;
   let retryCount: number = 0;
   let stopped: boolean = false;
   const MAX_RETRY: number = 3;
@@ -48,7 +47,7 @@
 
             if (eventName === "done") {
               statusEl.textContent += "，流接收完成 ✓";
-              return; // 等价于 es.close()
+              return;
             }
             if (!data) continue;
             const obj = JSON.parse(data) as SSEPayload;
@@ -75,10 +74,6 @@
   (document.getElementById("btn2") as HTMLButtonElement).onclick = () => connectByFetch("/stream/json");
   (document.getElementById("btnStop") as HTMLButtonElement).onclick = () => {
     stopped = true;
-    if (es) {
-      es.close();
-      es = null;
-    }
     statusEl.textContent = "已手动断开";
   };
 })();
