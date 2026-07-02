@@ -34,74 +34,62 @@ function createSSEMessageStream(options: {
   let closed = false;
   let heartbeat: NodeJS.Timeout | undefined;
 
-  // 心跳定时器和主循环是两个并发的生产者，不再各自往 ReadableStream
-  // 的 controller.enqueue()，而是共享同一个 writer 往同一个
-  // TransformStream 写——write() 天然排队，不需要额外加锁。
-  const transform = new TransformStream<SourceChunk, SourceChunk>();
-  const writer = transform.writable.getWriter();
-
-  const stopHeartbeat = () => {
-    if (heartbeat) clearInterval(heartbeat);
-    heartbeat = undefined;
-  };
-
   req.on("close", () => {
     console.log(`[请求 #${requestId}] 客户端关闭连接`);
     closed = true;
-    stopHeartbeat();
-    void writer.abort(new Error("client closed")).catch(() => {});
+    if (heartbeat) clearInterval(heartbeat);
   });
 
-  heartbeat = setInterval(() => {
-    if (closed) return;
-    writer.write({ kind: "comment", comment: "heartbeat" }).catch(() => {
-      // 下游已关闭/出错，write() 会 reject，顺势收掉心跳
-      closed = true;
-      stopHeartbeat();
-    });
-  }, 15000);
+  return new ReadableStream<SourceChunk>({
+    start(controller) {
+      heartbeat = setInterval(() => {
+        if (!closed) controller.enqueue({ kind: "comment", comment: "heartbeat" });
+      }, 15000);
 
-  const run = async (): Promise<void> => {
-    try {
-      const startPayload: StartPayload = { type: "start", id: "msg_" + Date.now() };
-      await writer.write({ kind: "event", payload: startPayload });
+      const run = async (): Promise<void> => {
+        try {
+          const startPayload: StartPayload = { type: "start", id: "msg_" + Date.now() };
+          controller.enqueue({ kind: "event", payload: startPayload });
 
-      for (let i: number = offset; i < words.length; i++) {
-        if (closed) return;
+          for (let i: number = offset; i < words.length; i++) {
+            if (closed) {
+              controller.close();
+              return;
+            }
 
-        if (shouldFail && i === breakAt) {
-          console.log(`[请求 #${requestId}] 模拟故障，在位置 ${i} 强制断开`);
-          closed = true;
-          await writer.abort(new Error("Simulated SSE disconnect"));
-          res.destroy();
-          return;
+            if (shouldFail && i === breakAt) {
+              console.log(`[请求 #${requestId}] 模拟故障，在位置 ${i} 强制断开`);
+              closed = true;
+              controller.error(new Error("Simulated SSE disconnect"));
+              res.destroy();
+              return;
+            }
+
+            const payload: DeltaPayload = { type: "delta", index: i, content: words[i] };
+            controller.enqueue({ kind: "event", payload, id: i });
+            await sleep(60);
+          }
+
+          if (!closed) {
+            const stopPayload: StopPayload = { type: "stop", reason: "complete", totalTokens: words.length };
+            controller.enqueue({ kind: "event", payload: stopPayload, id: words.length });
+            controller.enqueue({ kind: "event", payload: "[DONE]", event: "done" });
+            controller.close();
+          }
+        } catch (error) {
+          if (!closed) controller.error(error);
+        } finally {
+          if (heartbeat) clearInterval(heartbeat);
         }
+      };
 
-        const payload: DeltaPayload = { type: "delta", index: i, content: words[i] };
-        // 关键区别：await writer.write() 是真背压——下游（编码器 /
-        // Node 响应 socket）跟不上时，这次 write 会实实在在挂起，
-        // 而不是像原来 controller.enqueue() 那样无条件塞进队列。
-        await writer.write({ kind: "event", payload, id: i });
-        await sleep(60);
-      }
-
-      if (!closed) {
-        const stopPayload: StopPayload = { type: "stop", reason: "complete", totalTokens: words.length };
-        await writer.write({ kind: "event", payload: stopPayload, id: words.length });
-        await writer.write({ kind: "event", payload: "[DONE]", event: "done" });
-        await writer.close();
-      }
-    } catch (error) {
-      if (!closed) await writer.abort(error);
-    } finally {
+      void run();
+    },
+    cancel() {
       closed = true;
-      stopHeartbeat();
-    }
-  };
-
-  void run();
-
-  return transform.readable;
+      if (heartbeat) clearInterval(heartbeat);
+    },
+  });
 }
 
 function createSSEMessageTransformer(): TransformStream<SourceChunk, SSEMessage> {
