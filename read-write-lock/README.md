@@ -140,3 +140,5 @@ for (let i = 1; i < 8; i++) {
 2. **`while` 循环重新检查条件**——唤醒不等于拿到锁，这是避免竞态条件的关键
 3. **`try/finally` 保证锁一定被释放**——即使业务逻辑抛异常
 4. **公平性是要额外设计的**——不加干预的话，源源不断的读者会让写者永远等待
+
+源码：[ReadWriteLock](https://github.com/astak16/learn-model/blob/main/read-write-lock/src/core.ts#L10)
