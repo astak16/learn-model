@@ -1,0 +1,13 @@
+{
+  "name": "read-write-lock",
+  "type": "module",
+  "scripts": {
+    "start": "node sse/index-retry.js"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "esbuild": "^0.28.1",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
