@@ -196,7 +196,6 @@ export const createMockModel = (): LanguageModel => ({
     const text = extractUserText(prompt);
     if (text.includes("测试重试") || text.includes("test retry")) {
       retryTestCount++;
-      console.log(retryTestCount);
       if (retryTestCount <= 2) {
         throw new Error("429 Too Many Requests - Rate limit exceeded");
       }
