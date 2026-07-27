@@ -1,0 +1,23 @@
+{
+  "name": "super-agent-06",
+  "version": "0.4.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "preview": "http-server app -p 8080 -c-1 --cors -s"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.64",
+    "@ai-sdk/provider": "^3.0.10",
+    "ai": "^6.0.188",
+    "dotenv": "^17.0.0",
+    "fast-glob": "^3.3.3",
+    "zod": "3.25.76",
+    "http-server": "14.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "4.19.4",
+    "typescript": "5.8.3"
+  }
+}
