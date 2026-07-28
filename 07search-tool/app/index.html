@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的待办清单</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- <script type="module" src="./App.tsx"></script> -->
+
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18.3.1",
+          "react-dom": "https://esm.sh/react-dom@18.3.1",
+          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+          "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+          "standalone": "https://esm.sh/@babel/standalone@7.25.6"
+        }
+      }
+    </script>
+    <script type="module">
+      import { transform } from "standalone";
+      const cache = new Map();
+
+      async function loadModule(url) {
+        if (cache.has(url)) return cache.get(url);
+        const src = await (await fetch(url)).text();
+        const compiled = transform(src, {
+          presets: [
+            ["react", { runtime: "automatic" }],
+            ["typescript", { allExtensions: true, isTSX: true }],
+          ],
+          filename: url,
+        }).code;
+        const resolved = await rewriteRelativeImports(compiled, url);
+        const blob = new Blob([resolved], { type: "application/javascript" });
+        const blobUrl = URL.createObjectURL(blob);
+        cache.set(url, blobUrl);
+        return blobUrl;
+      }
+
+      async function rewriteRelativeImports(code, baseUrl) {
+        // 找出所有 import ... from './xxx' 或 import(...) 这类相对导入
+        const importRegex = /from\s+['"](\.[^'"]+)['"]/g;
+        let result = code;
+        const matches = [...code.matchAll(importRegex)];
+
+        for (const match of matches) {
+          const relPath = match[1];
+          const absoluteUrl = new URL(relPath, baseUrl).href;
+          // 递归调用 loadModule，拿到该依赖对应的 blob URL
+          const depBlobUrl = await loadModule(absoluteUrl);
+          result = result.replace(match[0], `from "${depBlobUrl}"`);
+        }
+        return result;
+      }
+
+      await import(await loadModule(new URL("./App.tsx", location.href).href));
+    </script>
+  </body>
+</html>

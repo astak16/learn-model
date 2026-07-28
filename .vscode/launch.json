@@ -10,7 +10,7 @@
       "request": "launch",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["start"],
-      "cwd": "${workspaceFolder}/03",
+      "cwd": "${workspaceFolder}/04",
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**"],
       "outputCapture": "std"

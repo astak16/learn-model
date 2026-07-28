@@ -2,8 +2,19 @@ import "dotenv/config";
 import { streamText, type ModelMessage } from "ai";
 import { createMockModel } from "./mock-model";
 import { createInterface } from "node:readline";
+import { createOpenAI } from "@ai-sdk/openai";
 
-const model = createMockModel();
+// const model = createMockModel();
+
+const qwen = createOpenAI({
+  baseURL: process.env.DASHSCOPE_URL,
+  apiKey: process.env.DASHSCOPE_API_KEY,
+});
+
+const model =
+  process.env.DASHSCOPE_API_KEY && process.env.DASHSCOPE_MODEL
+    ? qwen.chat(process.env.DASHSCOPE_MODEL)
+    : createMockModel();
 
 const rl = createInterface({
   input: process.stdin,
